@@ -1,12 +1,43 @@
 package handler
 
 import (
-	"github.com/StringTek2019/go-everywhere/resolver"
+	"fmt"
+	"github.com/StringTek2019/go-anywhere/resolver"
+	"log"
 	"net/http"
+	"os"
 )
-
-func ErrorWrapper(dir,prefix string,resolver resolver.StaticResolverType)(string,string,resolver.StandardResolverType){
-	return dir,prefix, func(writer http.ResponseWriter, request http.Request) {
-
+func ErrorWrapper(dir,prefix string,staticResolver resolver.StaticResolverType)(string,resolver.StandardResolverType){
+	return prefix, func(writer http.ResponseWriter, request *http.Request) {
+		defer func(){
+			r:=recover()
+			if r!=nil{
+				log.Printf("Panic:%v",r)
+				http.Error(writer,http.StatusText(http.StatusInternalServerError),http.StatusInternalServerError)
+			}
+		}()
+		if err:=staticResolver(dir,prefix,writer,request);err!=nil{
+			log.Printf("error occurred:%s",err.Error())
+			if userError,ok:=err.(resolver.UserError);ok{
+				switch t:=userError.(type){
+				case *resolver.NoIndexPageError:
+					http.Error(writer,t.Message(),http.StatusNotFound)
+				default:
+					http.Error(writer,t.Message(),http.StatusInternalServerError)
+				}
+				return
+			}
+			code:=http.StatusOK
+			switch{
+			case os.IsNotExist(err):
+				fmt.Println()
+				code=http.StatusNotFound
+			case os.IsPermission(err):
+				code=http.StatusForbidden
+			default:
+				code=http.StatusInternalServerError
+			}
+			http.Error(writer,http.StatusText(code),code)
+		}
 	}
 }
