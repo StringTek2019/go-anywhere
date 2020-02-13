@@ -12,7 +12,7 @@ type StandardResolverType func(writer http.ResponseWriter,request *http.Request)
 
 func StaticResolver(dir,prefix string,writer http.ResponseWriter,request *http.Request)error{
 	if strings.Index(request.URL.Path,prefix)!=0{
-		return &InvalidPrefixError{prefix:prefix}
+		return &InvalidPrefixError{Prefix:prefix}
 	}
 	path:=dir+string(os.PathSeparator)+request.URL.Path[len(prefix):]
 	if stat, err := os.Stat(path);err!=nil{
@@ -58,22 +58,22 @@ type UserError interface{
 	Message()string
 }
 type NoIndexPageError struct{
-	path string
+	Path string
 }
 
 func (err *NoIndexPageError) Error()string{
-	return "directory ["+err.path+"] don't have an index page"
+	return "directory ["+err.Path+"] don't have an index page"
 }
 func (err *NoIndexPageError) Message()string{
-	return "directory ["+err.path+"] don't have an index page"
+	return "directory ["+err.Path+"] don't have an index page"
 }
 
 type InvalidPrefixError struct{
-	prefix string
+	Prefix string
 }
 func (err *InvalidPrefixError) Error() string{
-	return "url must start with "+err.prefix
+	return "url must start with "+err.Prefix
 }
 func (err *InvalidPrefixError) Message() string {
-	return "url must start with "+err.prefix
+	return "url must start with "+err.Prefix
 }
