@@ -8,7 +8,7 @@ import (
 	"os"
 )
 func ErrorWrapper(dir,prefix string,staticResolver resolver.StaticResolverType)(string,resolver.StandardResolverType){
-	return prefix, func(writer http.ResponseWriter, request *http.Request) {
+	return "/", func(writer http.ResponseWriter, request *http.Request) {
 		defer func(){
 			r:=recover()
 			if r!=nil{
@@ -22,6 +22,9 @@ func ErrorWrapper(dir,prefix string,staticResolver resolver.StaticResolverType)(
 				switch t:=userError.(type){
 				case *resolver.NoIndexPageError:
 					http.Error(writer,t.Message(),http.StatusNotFound)
+
+				case *resolver.InvalidPrefixError:
+					http.Error(writer,t.Message(),http.StatusBadRequest)
 				default:
 					http.Error(writer,t.Message(),http.StatusInternalServerError)
 				}

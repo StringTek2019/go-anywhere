@@ -4,12 +4,16 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type StaticResolverType func(dir,prefix string,writer http.ResponseWriter,request *http.Request)error
 type StandardResolverType func(writer http.ResponseWriter,request *http.Request)
 
 func StaticResolver(dir,prefix string,writer http.ResponseWriter,request *http.Request)error{
+	if strings.Index(request.URL.Path,prefix)!=0{
+		return &InvalidPrefixError{prefix:prefix}
+	}
 	path:=dir+string(os.PathSeparator)+request.URL.Path[len(prefix):]
 	if stat, err := os.Stat(path);err!=nil{
 		return err
@@ -49,6 +53,10 @@ func resolveFile(path string,writer http.ResponseWriter)error{
 	}
 	return nil
 }
+type UserError interface{
+	error
+	Message()string
+}
 type NoIndexPageError struct{
 	path string
 }
@@ -60,8 +68,12 @@ func (err *NoIndexPageError) Message()string{
 	return "directory ["+err.path+"] don't have an index page"
 }
 
-
-type UserError interface{
-	error
-	Message()string
+type InvalidPrefixError struct{
+	prefix string
+}
+func (err *InvalidPrefixError) Error() string{
+	return "url must start with "+err.prefix
+}
+func (err *InvalidPrefixError) Message() string {
+	return "url must start with "+err.prefix
 }
